@@ -270,6 +270,10 @@ func PrepareTimeseriesFilterQuery(start, end int64, mq *v3.BuilderQuery) (string
 
 	if fs != nil && len(fs.Items) != 0 {
 		for _, item := range fs.Items {
+			if item.Key.Key == "__value" {
+				continue
+			}
+
 			toFormat := item.Value
 			op := v3.FilterOperator(strings.ToLower(strings.TrimSpace(string(item.Operator))))
 			if op == v3.FilterOperatorContains || op == v3.FilterOperatorNotContains {
@@ -318,7 +322,7 @@ func PrepareTimeseriesFilterQuery(start, end int64, mq *v3.BuilderQuery) (string
 
 	var selectLabels string
 	for _, tag := range groupTags {
-		selectLabels += fmt.Sprintf("JSONExtractString(labels, '%s') as %s, ", tag.Key, tag.Key)
+		selectLabels += fmt.Sprintf("JSONExtractString(labels, '%s') as %s, ", tag.Key, utils.AddBackTickToFormatTag(tag.Key))
 	}
 
 	// The table JOIN key always exists
@@ -402,7 +406,7 @@ func PrepareTimeseriesFilterQueryV3(start, end int64, mq *v3.BuilderQuery) (stri
 		selectLabels += "labels, "
 	} else {
 		for _, tag := range groupTags {
-			selectLabels += fmt.Sprintf("JSONExtractString(labels, '%s') as %s, ", tag.Key, tag.Key)
+			selectLabels += fmt.Sprintf("JSONExtractString(labels, '%s') as %s, ", tag.Key, utils.AddBackTickToFormatTag(tag.Key))
 		}
 	}
 

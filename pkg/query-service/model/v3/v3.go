@@ -716,6 +716,28 @@ func GetPercentileFromOperator(operator SpaceAggregation) float64 {
 	}
 }
 
+type SecondaryAggregation string
+
+const (
+	SecondaryAggregationUnspecified SecondaryAggregation = ""
+	SecondaryAggregationSum         SecondaryAggregation = "sum"
+	SecondaryAggregationAvg         SecondaryAggregation = "avg"
+	SecondaryAggregationMin         SecondaryAggregation = "min"
+	SecondaryAggregationMax         SecondaryAggregation = "max"
+)
+
+func (s SecondaryAggregation) Validate() error {
+	switch s {
+	case SecondaryAggregationSum,
+		SecondaryAggregationAvg,
+		SecondaryAggregationMin,
+		SecondaryAggregationMax:
+		return nil
+	default:
+		return fmt.Errorf("invalid series aggregation: %s", s)
+	}
+}
+
 type FunctionName string
 
 const (
@@ -774,32 +796,47 @@ type MetricTableHints struct {
 	SamplesTableName    string
 }
 
+type MetricValueFilter struct {
+	Value float64
+}
+
+func (m *MetricValueFilter) Clone() *MetricValueFilter {
+	if m == nil {
+		return nil
+	}
+	return &MetricValueFilter{
+		Value: m.Value,
+	}
+}
+
 type BuilderQuery struct {
-	QueryName            string            `json:"queryName"`
-	StepInterval         int64             `json:"stepInterval"`
-	DataSource           DataSource        `json:"dataSource"`
-	AggregateOperator    AggregateOperator `json:"aggregateOperator"`
-	AggregateAttribute   AttributeKey      `json:"aggregateAttribute,omitempty"`
-	Temporality          Temporality       `json:"temporality,omitempty"`
-	Filters              *FilterSet        `json:"filters,omitempty"`
-	GroupBy              []AttributeKey    `json:"groupBy,omitempty"`
-	Expression           string            `json:"expression"`
-	Disabled             bool              `json:"disabled"`
-	Having               []Having          `json:"having,omitempty"`
-	Legend               string            `json:"legend,omitempty"`
-	Limit                uint64            `json:"limit"`
-	Offset               uint64            `json:"offset"`
-	PageSize             uint64            `json:"pageSize"`
-	OrderBy              []OrderBy         `json:"orderBy,omitempty"`
-	ReduceTo             ReduceToOperator  `json:"reduceTo,omitempty"`
-	SelectColumns        []AttributeKey    `json:"selectColumns,omitempty"`
-	TimeAggregation      TimeAggregation   `json:"timeAggregation,omitempty"`
-	SpaceAggregation     SpaceAggregation  `json:"spaceAggregation,omitempty"`
-	Functions            []Function        `json:"functions,omitempty"`
+	QueryName            string               `json:"queryName"`
+	StepInterval         int64                `json:"stepInterval"`
+	DataSource           DataSource           `json:"dataSource"`
+	AggregateOperator    AggregateOperator    `json:"aggregateOperator"`
+	AggregateAttribute   AttributeKey         `json:"aggregateAttribute,omitempty"`
+	Temporality          Temporality          `json:"temporality,omitempty"`
+	Filters              *FilterSet           `json:"filters,omitempty"`
+	GroupBy              []AttributeKey       `json:"groupBy,omitempty"`
+	Expression           string               `json:"expression"`
+	Disabled             bool                 `json:"disabled"`
+	Having               []Having             `json:"having,omitempty"`
+	Legend               string               `json:"legend,omitempty"`
+	Limit                uint64               `json:"limit"`
+	Offset               uint64               `json:"offset"`
+	PageSize             uint64               `json:"pageSize"`
+	OrderBy              []OrderBy            `json:"orderBy,omitempty"`
+	ReduceTo             ReduceToOperator     `json:"reduceTo,omitempty"`
+	SelectColumns        []AttributeKey       `json:"selectColumns,omitempty"`
+	TimeAggregation      TimeAggregation      `json:"timeAggregation,omitempty"`
+	SpaceAggregation     SpaceAggregation     `json:"spaceAggregation,omitempty"`
+	SecondaryAggregation SecondaryAggregation `json:"seriesAggregation,omitempty"`
+	Functions            []Function           `json:"functions,omitempty"`
 	ShiftBy              int64
 	IsAnomaly            bool
 	QueriesUsedInFormula []string
-	MetricTableHints     *MetricTableHints `json:"-"`
+	MetricTableHints     *MetricTableHints  `json:"-"`
+	MetricValueFilter    *MetricValueFilter `json:"-"`
 }
 
 func (b *BuilderQuery) SetShiftByFromFunc() {
@@ -863,6 +900,7 @@ func (b *BuilderQuery) Clone() *BuilderQuery {
 		ShiftBy:              b.ShiftBy,
 		IsAnomaly:            b.IsAnomaly,
 		QueriesUsedInFormula: b.QueriesUsedInFormula,
+		MetricValueFilter:    b.MetricValueFilter.Clone(),
 	}
 }
 
@@ -946,6 +984,12 @@ func (b *BuilderQuery) Validate(panelType PanelType) error {
 		// if len(b.GroupBy) > 0 && panelType == PanelTypeList {
 		// 	return fmt.Errorf("group by is not supported for list panel type")
 		// }
+
+		if panelType == PanelTypeValue && len(b.GroupBy) > 0 {
+			if err := b.SecondaryAggregation.Validate(); err != nil {
+				return fmt.Errorf("series aggregation is required for value type panel with group by: %w", err)
+			}
+		}
 
 		for _, groupBy := range b.GroupBy {
 			if err := groupBy.Validate(); err != nil {

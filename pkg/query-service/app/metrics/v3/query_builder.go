@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"go.signoz.io/signoz/pkg/query-service/app/metrics"
 	"go.signoz.io/signoz/pkg/query-service/app/metrics/v4/helpers"
 	"go.signoz.io/signoz/pkg/query-service/common"
 	"go.signoz.io/signoz/pkg/query-service/constants"
@@ -216,6 +217,7 @@ func buildMetricQuery(start, end, step int64, mq *v3.BuilderQuery) (string, erro
 // groupingSets returns a string of comma separated tags for group by clause
 // `ts` is always added to the group by clause
 func groupingSets(tags ...string) string {
+	tags = utils.AddBackTickToFormatTags(tags...)
 	withTs := append(tags, "ts")
 	return strings.Join(withTs, ", ")
 }
@@ -223,12 +225,14 @@ func groupingSets(tags ...string) string {
 // groupBy returns a string of comma separated tags for group by clause
 // `ts` is always added to the group by clause
 func groupBy(tags ...string) string {
+	tags = utils.AddBackTickToFormatTags(tags...)
 	tags = append(tags, "ts")
 	return strings.Join(tags, ",")
 }
 
 // groupSelect returns a string of comma separated tags for select clause
 func groupSelect(tags ...string) string {
+	tags = utils.AddBackTickToFormatTags(tags...)
 	groupTags := strings.Join(tags, ",")
 	if len(tags) != 0 {
 		groupTags += ", "
@@ -269,11 +273,13 @@ func orderBy(items []v3.OrderBy, tags []string) string {
 		for _, item := range items {
 			if item.ColumnName == tag {
 				found = true
+				item.ColumnName = utils.AddBackTickToFormatTag(item.ColumnName)
 				orderBy = append(orderBy, fmt.Sprintf("%s %s", item.ColumnName, item.Order))
 				break
 			}
 		}
 		if !found {
+			tag = utils.AddBackTickToFormatTag(tag)
 			orderBy = append(orderBy, fmt.Sprintf("%s ASC", tag))
 		}
 	}
@@ -334,6 +340,10 @@ func reduceQuery(query string, reduceTo v3.ReduceToOperator, aggregateOperator v
 func PrepareMetricQuery(start, end int64, queryType v3.QueryType, panelType v3.PanelType, mq *v3.BuilderQuery, options Options) (string, error) {
 
 	start, end = common.AdjustedMetricTimeRange(start, end, mq.StepInterval, *mq)
+
+	if valFilter := metrics.AddMetricValueFilter(mq); valFilter != nil {
+		mq.MetricValueFilter = valFilter
+	}
 
 	// if the aggregate operator is a histogram quantile, and user has not forgotten
 	// the le tag in the group by then add the le tag to the group by
