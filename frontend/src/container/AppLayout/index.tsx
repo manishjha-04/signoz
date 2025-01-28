@@ -433,7 +433,6 @@ function AppLayout(props: AppLayoutProps): JSX.Element {
 											isAlertOverview() ||
 											isMessagingQueues() ||
 											isCloudIntegrationPage() ||
-											isInfraMonitoringHosts()
 											isInfraMonitoring()
 												? 0
 												: '0 1rem',
