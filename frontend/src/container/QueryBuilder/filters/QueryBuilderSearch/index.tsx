@@ -6,6 +6,7 @@ import cx from 'classnames';
 import { OPERATORS } from 'constants/queryBuilder';
 import ROUTES from 'constants/routes';
 import { LogsExplorerShortcuts } from 'constants/shortcuts/logsExplorerShortcuts';
+import { K8sCategory } from 'container/InfraMonitoringK8s/constants';
 import { getDataTypes } from 'container/LogDetailedView/utils';
 import { useKeyboardHotkeys } from 'hooks/hotkeys/useKeyboardHotkeys';
 import {
@@ -55,6 +56,7 @@ import { PLACEHOLDER } from './constant';
 import ExampleQueriesRendererForLogs from './ExampleQueriesRendererForLogs';
 import OptionRenderer from './OptionRenderer';
 import OptionRendererForLogs from './OptionRendererForLogs';
+import SpanScopeSelector from './SpanScopeSelector';
 import { StyledCheckOutlined, TypographyText } from './style';
 import {
 	convertExampleQueriesToOptions,
@@ -74,11 +76,18 @@ function QueryBuilderSearch({
 	suffixIcon,
 	isInfraMonitoring,
 	disableNavigationShortcuts,
+	entity,
 }: QueryBuilderSearchProps): JSX.Element {
 	const { pathname } = useLocation();
 	const isLogsExplorerPage = useMemo(() => pathname === ROUTES.LOGS_EXPLORER, [
 		pathname,
 	]);
+
+	const isTracesExplorerPage = useMemo(
+		() => pathname === ROUTES.TRACES_EXPLORER,
+		[pathname],
+	);
+
 	const {
 		updateTag,
 		handleClearTag,
@@ -92,6 +101,7 @@ function QueryBuilderSearch({
 		isMulti,
 		isFetching,
 		setSearchKey,
+		setSearchValue,
 		searchKey,
 		key,
 		exampleQueries,
@@ -100,19 +110,23 @@ function QueryBuilderSearch({
 		whereClauseConfig,
 		isLogsExplorerPage,
 		isInfraMonitoring,
+		entity,
 	);
+
 	const [isOpen, setIsOpen] = useState<boolean>(false);
 	const [showAllFilters, setShowAllFilters] = useState<boolean>(false);
 	const [dynamicPlacholder, setDynamicPlaceholder] = useState<string>(
 		placeholder || '',
 	);
 	const selectRef = useRef<BaseSelectRef>(null);
+
 	const { sourceKeys, handleRemoveSourceKey } = useFetchKeysAndValues(
 		searchValue,
 		query,
 		searchKey,
 		isLogsExplorerPage,
 		isInfraMonitoring,
+		entity,
 	);
 
 	const { registerShortcut, deregisterShortcut } = useKeyboardHotkeys();
@@ -138,7 +152,11 @@ function QueryBuilderSearch({
 
 		const tagEditHandler = (value: string): void => {
 			updateTag(value);
-			handleSearch(value);
+			if (isInfraMonitoring) {
+				setSearchValue(value);
+			} else {
+				handleSearch(value);
+			}
 		};
 
 		const isDisabled = !!searchValue;
@@ -307,11 +325,7 @@ function QueryBuilderSearch({
 	));
 
 	return (
-		<div
-			style={{
-				position: 'relative',
-			}}
-		>
+		<div className="query-builder-search-container">
 			<Select
 				ref={selectRef}
 				getPopupContainer={popupContainer}
@@ -437,6 +451,7 @@ function QueryBuilderSearch({
 							</Select.Option>
 					  ))}
 			</Select>
+			{isTracesExplorerPage && <SpanScopeSelector queryName={query.queryName} />}
 		</div>
 	);
 }
@@ -450,6 +465,7 @@ interface QueryBuilderSearchProps {
 	suffixIcon?: React.ReactNode;
 	isInfraMonitoring?: boolean;
 	disableNavigationShortcuts?: boolean;
+	entity?: K8sCategory | null;
 }
 
 QueryBuilderSearch.defaultProps = {
@@ -459,6 +475,7 @@ QueryBuilderSearch.defaultProps = {
 	suffixIcon: undefined,
 	isInfraMonitoring: false,
 	disableNavigationShortcuts: false,
+	entity: null,
 };
 
 export interface CustomTagProps {

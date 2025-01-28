@@ -1,4 +1,5 @@
 import ROUTES from 'constants/routes';
+import MessagingQueues from 'pages/MessagingQueues';
 import { RouteProps } from 'react-router-dom';
 
 import {
@@ -10,6 +11,7 @@ import {
 	BillingPage,
 	CreateAlertChannelAlerts,
 	CreateNewAlerts,
+	CustomDomainSettings,
 	DashboardPage,
 	DashboardWidget,
 	EditAlertChannelsAlerts,
@@ -26,7 +28,6 @@ import {
 	LogsExplorer,
 	LogsIndexToFields,
 	LogsSaveViews,
-	MessagingQueues,
 	MQDetailPage,
 	MySettings,
 	NewDashboardPage,
@@ -289,6 +290,13 @@ const routes: AppRoutes[] = [
 		key: 'MY_SETTINGS',
 	},
 	{
+		path: ROUTES.CUSTOM_DOMAIN_SETTINGS,
+		exact: true,
+		component: CustomDomainSettings,
+		isPrivate: true,
+		key: 'CUSTOM_DOMAIN_SETTINGS',
+	},
+	{
 		path: ROUTES.LOGS,
 		exact: true,
 		component: Logs,
@@ -394,6 +402,20 @@ const routes: AppRoutes[] = [
 		isPrivate: true,
 	},
 	{
+		path: ROUTES.MESSAGING_QUEUES_CELERY_TASK,
+		exact: true,
+		component: MessagingQueues,
+		key: 'MESSAGING_QUEUES_CELERY_TASK',
+		isPrivate: true,
+	},
+	{
+		path: ROUTES.MESSAGING_QUEUES_OVERVIEW,
+		exact: true,
+		component: MessagingQueues,
+		key: 'MESSAGING_QUEUES_OVERVIEW',
+		isPrivate: true,
+	},
+	{
 		path: ROUTES.MESSAGING_QUEUES_DETAIL,
 		exact: true,
 		component: MQDetailPage,
@@ -405,6 +427,13 @@ const routes: AppRoutes[] = [
 		exact: true,
 		component: InfrastructureMonitoring,
 		key: 'INFRASTRUCTURE_MONITORING_HOSTS',
+		isPrivate: true,
+	},
+	{
+		path: ROUTES.INFRASTRUCTURE_MONITORING_KUBERNETES,
+		exact: true,
+		component: InfrastructureMonitoring,
+		key: 'INFRASTRUCTURE_MONITORING_KUBERNETES',
 		isPrivate: true,
 	},
 ];
